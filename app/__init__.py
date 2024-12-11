@@ -1,6 +1,5 @@
 from flask import Flask
 from flask_login import LoginManager
-
 from app.controllers.manage_users import admin_bp
 from app.models.models import User
 from config import Config, db
@@ -12,6 +11,8 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Initialize the database
     try:
         db.init_app(app)
     except Exception as e:
@@ -34,6 +35,7 @@ def create_app():
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+
     return app
 
 
