@@ -1,0 +1,45 @@
+<nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+    <div class="container-fluid d-flex justify-content-center align-items-center">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 40px;">
+            <span class="ms-2">KIPPRA Customer Survey</span>
+        </a>
+        <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+            <!-- Removed extra h3 tag -->
+        </div>
+    </div>
+</nav>
+
+<style>
+    .navbar-custom {
+        background-color: #4ea375; /* Set navbar background color */
+    }
+
+    .navbar-brand {
+        font-size: 1.5rem; /* Set default font size */
+        color: white; /* Set text color to white */
+        font-weight: bold; /* Make text bold */
+        display: flex;
+        align-items: center;
+        gap: 10px; /* Space between logo and text */
+    }
+
+    .navbar-nav .nav-link {
+        color: white !important; /* Ensure text color is white */
+    }
+
+    .navbar-nav .nav-link:hover {
+        color: #ddd !important; /* Change text color on hover */
+    }
+
+    .navbar-brand span {
+        color: white !important; /* Set text color for any span */
+    }
+
+    /* Center text by default, align left on smaller screens */
+    @media (max-width: 768px) {
+        .container-fluid {
+            justify-content: flex-start; /* Move content to the left on smaller screens */
+        }
+    }
+</style>

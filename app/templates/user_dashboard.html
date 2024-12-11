@@ -1,0 +1,44 @@
+<!-- templates/user_dashboard.html -->
+{% extends "base.html" %}
+
+{% block content %}
+ <!-- templates/sidebar.html -->
+<div id="navbar">
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    {% include 'sidebar_admin.html' %}
+    {% else %}
+    {% include 'sidebar.html' %}
+    {% endif %}
+</div>
+
+<!-- Sidebar Links -->
+<script>
+    // Automatically redirect to "Category Charts" when page loads
+    window.onload = function() {
+        // Check if the current URL doesn't already contain the default page
+
+        window.location.href = "{{ url_for('survey.demographic_charts') }}";
+
+
+        // Toggle Sidebar Menu
+        const sidebar = document.querySelector(".sidebar");
+        const links = document.getElementById("sidebarMenu");
+        const toggleIcon = document.getElementById("toggleIcon");
+
+        if (sidebar.classList.contains("expanded")) {
+            // Collapse the sidebar
+            sidebar.classList.remove("expanded");
+            sidebar.classList.add("collapsed");
+            links.style.display = "none"; // Hide links
+            toggleIcon.innerHTML = "&#9776;"; // Set to hamburger icon
+        } else {
+            // Expand the sidebar
+            sidebar.classList.remove("collapsed");
+            sidebar.classList.add("expanded");
+            links.style.display = "block"; // Show links
+            toggleIcon.innerHTML = "&times;"; // Set to close icon
+        }
+    };
+</script>
+
+{% endblock %}
