@@ -116,6 +116,14 @@ def fetch_category_scores():
 
     results = query.all()
 
+    # Define the mapping for organization categories
+    org_category_mapping = {
+        "1": "Private",
+        "2": "Public",
+        "3": "Supplier/Contractor",
+        "4": "NGO"
+    }
+
     # Format the result into a dictionary by category
     data = {
         "Age": {},
@@ -139,9 +147,11 @@ def fetch_category_scores():
         if appr_comm:
             data["Communication Channel"][appr_comm] = data["Communication Channel"].get(appr_comm, 0) + count
 
+        # Handle organization type
         if org_category or onbehalf:
-            org_category = org_category if org_category else onbehalf
-            data["Organization Type"][org_category] = data["Organization Type"].get(org_category, 0) + count
+            org_category = org_category if org_category or org_category is not None else onbehalf
+            org_label = org_category_mapping.get(org_category)
+            data["Organization Type"][org_label] = data["Organization Type"].get(org_label, 0) + count
 
     # Convert the data dictionary into a list format for easier chart rendering
     final_data = {
