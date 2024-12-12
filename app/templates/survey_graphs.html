@@ -8,36 +8,149 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <div id="navbar">
-        {% if current_user.is_authenticated and current_user.is_admin %}
-            {% include 'sidebar_admin.html' %}
-        {% else %}
-            {% include 'sidebar.html' %}
-        {% endif %}
-    </div>
-    <div class="container">
-        <!-- Dropdown to select Formdef ID -->
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <select id="formdefSelect" class="form-select">
-                    <!-- Options will be dynamically loaded -->
-                </select>
-            </div>
-        </div>
+<div id="navbar">
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    {% include 'sidebar_admin.html' %}
+    {% else %}
+    {% include 'sidebar.html' %}
+    {% endif %}
+</div>
 
-        <!-- Section to dynamically render charts -->
-        <div id="chartsContainer" class="row">
-            <!-- Individual charts will be added here dynamically -->
+<div class="container" style="margin-top: 50px;">
+    <!-- Row for Dropdown -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-4">
+            <select id="formdefSelect" class="form-select">
+                <!-- Options will be dynamically loaded -->
+            </select>
         </div>
     </div>
 
-    <script>
+    <!-- Section to dynamically render charts -->
+    <div id="chartsContainer" class="row g-3">
+        <!-- Individual charts will be added here dynamically -->
+    </div>
+</div>
+
+<!-- Floating Menu Button -->
+<div id="floatingMenuButton">
+    <span>☰</span>
+</div>
+<div id="floatingSubMenu">
+    <!-- Submenu links will be dynamically added here -->
+</div>
+
+<style>
+    /* Floating Button */
+    #floatingMenuButton {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: rgba(0, 123, 255, 0.8);
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.3s;
+        z-index: 2000;
+    }
+
+    #floatingMenuButton:hover {
+        opacity: 1;
+    }
+
+    /* Floating Submenu */
+    #floatingSubMenu {
+        position: fixed;
+        bottom: 80px; /* Adjust based on the button size */
+        right: 20px;
+        display: none;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 2000;
+    }
+
+    #floatingSubMenu a {
+        display: block;
+        color: #007bff;
+        text-decoration: none;
+        margin-bottom: 5px;
+        padding: 5px;
+    }
+
+    #floatingSubMenu a:hover {
+        text-decoration: underline;
+        background-color: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    /* Chart Section Styles */
+    .category-section {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    .category-title {
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+
+    .chart-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+    }
+
+    .chart-item {
+        flex: 0 0 45%;
+        margin: 10px;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .chart-item {
+            flex: 0 0 100%;
+        }
+    }
+</style>
+
+<script>
     document.addEventListener("DOMContentLoaded", () => {
         const formdefSelect = document.getElementById("formdefSelect");
         const chartsContainer = document.getElementById("chartsContainer");
+        const floatingMenuButton = document.getElementById("floatingMenuButton");
+        const floatingSubMenu = document.getElementById("floatingSubMenu");
 
         // Store chart instances for cleanup
         let chartInstances = [];
+
+        // Toggle submenu visibility on click
+        floatingMenuButton.addEventListener("click", () => {
+            floatingSubMenu.style.display =
+                floatingSubMenu.style.display === "block" ? "none" : "block";
+        });
+
+        // Hide submenu when clicking elsewhere
+        document.addEventListener("click", (event) => {
+            if (!floatingMenuButton.contains(event.target) &&
+                !floatingSubMenu.contains(event.target)) {
+                floatingSubMenu.style.display = "none";
+            }
+        });
 
         // Fetch all formdef_ids to populate the dropdown
         async function fetchFormDefs() {
@@ -77,50 +190,78 @@
                 return;
             }
 
-            // Clear previous charts
+            // Clear previous charts and submenu
             chartInstances.forEach(chart => chart.destroy());
             chartsContainer.innerHTML = "";
+            floatingSubMenu.innerHTML = "";
             chartInstances = [];
 
-            // Render a chart for each category
+            // Iterate over categories
             Object.entries(data).forEach(([category, keysData]) => {
-                const canvasContainer = document.createElement("div");
-                canvasContainer.className = "col-md-6 mb-3";
-                const canvas = document.createElement("canvas");
-                canvasContainer.appendChild(canvas);
-                chartsContainer.appendChild(canvasContainer);
+                // Create a section for the category
+                const categorySection = document.createElement("div");
+                categorySection.className = "category-section col-12";
+                categorySection.id = `category-${category}`;
 
-                const labels = Object.keys(keysData); // Extract keys (e.g., prod_1, prod_2)
-                const counts = Object.values(keysData).map(keyData => keyData.count); // Extract counts
+                // Add a title for the category
+                const categoryTitle = document.createElement("div");
+                categoryTitle.className = "category-title";
+                categoryTitle.textContent = category;
+                categorySection.appendChild(categoryTitle);
 
-                const chart = new Chart(canvas.getContext("2d"), {
-                    type: "bar",
-                    data: {
-                        labels: labels, // Key names
-                        datasets: [{
-                            label: `Counts for ${category}`,
-                            data: counts, // Counts for each key
-                            backgroundColor: "rgb(51, 153, 255)",
-                            borderColor: "rgba(153, 102, 255, 1)",
-                            borderWidth: 1,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: true },
-                            title: {
-                                display: true,
-                                text: `Counts for ${category}`
-                            }
+                // Add a menu link for the category
+                const menuLink = document.createElement("a");
+                menuLink.href = `#category-${category}`;
+                menuLink.textContent = category;
+                menuLink.addEventListener("click", () => {
+                    floatingSubMenu.style.display = "none";
+                });
+                floatingSubMenu.appendChild(menuLink);
+
+                // Create a container for the charts
+                const chartContainer = document.createElement("div");
+                chartContainer.className = "chart-container";
+                categorySection.appendChild(chartContainer);
+
+                // Iterate over each key (e.g., Q1, Q2, etc.)
+                Object.entries(keysData).forEach(([key, valueData]) => {
+                    const chartItem = document.createElement("div");
+                    chartItem.className = "chart-item";
+
+                    const canvas = document.createElement("canvas");
+                    chartItem.appendChild(canvas);
+                    chartContainer.appendChild(chartItem);
+
+                    // Prepare chart data
+                    const labels = Object.keys(valueData);
+                    const counts = Object.values(valueData);
+
+                    const chart = new Chart(canvas.getContext("2d"), {
+                        type: "bar",
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: `${key} Counts`,
+                                data: counts,
+                                backgroundColor: "rgb(51, 153, 255)",
+                                borderColor: "rgba(153, 102, 255, 1)",
+                                borderWidth: 1,
+                            }]
                         },
-                        scales: {
-                            y: { beginAtZero: true }
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { display: true },
+                                title: { display: true, text: `${key} Distribution` }
+                            },
+                            scales: { y: { beginAtZero: true } }
                         }
-                    }
+                    });
+
+                    chartInstances.push(chart);
                 });
 
-                chartInstances.push(chart);
+                chartsContainer.appendChild(categorySection);
             });
         }
 
@@ -140,7 +281,7 @@
             }
         });
     });
-    </script>
+</script>
 
 </body>
 </html>

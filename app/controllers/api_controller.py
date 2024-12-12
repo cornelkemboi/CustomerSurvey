@@ -24,11 +24,71 @@ def fetch_forms():
         return jsonify({"error": "Failed to fetch forms"}), 500
 
 
+# @api_bp.route("/api/category_counts", methods=["GET"])
+# def fetch_category_counts():
+#     """
+#     Fetches the count of entries for a specific survey and its categories, optionally filtered by category or role.
+#     """
+#     form_id = request.args.get("formdef_id")
+#     category = request.args.get("category")
+#     role = request.args.get("role")
+#
+#     if not form_id:
+#         return jsonify({"error": "formdef_id is required"}), 400
+#
+#     # Start the query to fetch category counts
+#     query = (
+#         db.session.query(
+#             SurveyCategoryValue.category,
+#             SurveyCategoryValue.key,
+#             func.sum(SurveyCategoryValue.value).label('total_value'),
+#             func.count(SurveyCategoryValue.id).label('count')
+#         )
+#         .join(SurveyResponse, SurveyCategoryValue.survey_id == SurveyResponse.survey_id)
+#         .join(Survey, Survey.id == SurveyResponse.survey_id)
+#         .filter(Survey.formdef_id == form_id)
+#         .group_by(SurveyCategoryValue.category, SurveyCategoryValue.key)
+#         .order_by(SurveyCategoryValue.category, SurveyCategoryValue.key)  # Optional: order by category and key
+#     )
+#
+#     # Apply optional filters
+#     if category:
+#         query = query.filter(SurveyCategoryValue.category == category)
+#     if role:
+#         query = query.filter(SurveyResponse.role == role)
+#
+#     # Execute the query
+#     results = query.all()
+#
+#     # Function to replace long key names with Q1, Q2, etc.
+#     def replace_key_suffix(key):
+#         # Assuming keys are structured like "prod_1", "prod_2", etc.
+#         suffix = key.split('_')[-1]  # Extract the suffix (the last part after underscore)
+#         try:
+#             suffix_num = int(suffix)  # Convert to integer
+#             if suffix_num == 1:
+#                 return f"Q{suffix_num}"
+#             else:
+#                 return f"Q{suffix_num}"  # For any other number (e.g., 2-9)
+#         except ValueError:
+#             return key  # Return original key if conversion fails
+#
+#     # Format the result as a dictionary grouped by category and key
+#     output = {}
+#     for category, key, total_value, count in results:
+#         if category not in output:
+#             output[category] = {}
+#
+#         new_key = replace_key_suffix(key)  # Replace long key name with Q format
+#         output[category][new_key] = {
+#             'total_value': total_value,
+#             'count': count
+#         }
+#
+#     return jsonify(output)
+
 @api_bp.route("/api/category_counts", methods=["GET"])
 def fetch_category_counts():
-    """
-    Fetches the count of entries for a specific survey and its categories, optionally filtered by category or role.
-    """
     form_id = request.args.get("formdef_id")
     category = request.args.get("category")
     role = request.args.get("role")
@@ -36,19 +96,19 @@ def fetch_category_counts():
     if not form_id:
         return jsonify({"error": "formdef_id is required"}), 400
 
-    # Start the query to fetch category counts
+    # Start the query to fetch category counts grouped by value
     query = (
         db.session.query(
             SurveyCategoryValue.category,
             SurveyCategoryValue.key,
-            func.sum(SurveyCategoryValue.value).label('total_value'),
+            SurveyCategoryValue.value,
             func.count(SurveyCategoryValue.id).label('count')
         )
         .join(SurveyResponse, SurveyCategoryValue.survey_id == SurveyResponse.survey_id)
         .join(Survey, Survey.id == SurveyResponse.survey_id)
         .filter(Survey.formdef_id == form_id)
-        .group_by(SurveyCategoryValue.category, SurveyCategoryValue.key)
-        .order_by(SurveyCategoryValue.category, SurveyCategoryValue.key)  # Optional: order by category and key
+        .group_by(SurveyCategoryValue.category, SurveyCategoryValue.key, SurveyCategoryValue.value)
+        .order_by(SurveyCategoryValue.category, SurveyCategoryValue.key, SurveyCategoryValue.value)
     )
 
     # Apply optional filters
@@ -60,30 +120,38 @@ def fetch_category_counts():
     # Execute the query
     results = query.all()
 
+    # Map numeric values to labels
+    value_labels = {
+        "1": "Strongly Disagree",
+        "2": "Disagree",
+        "3": "Neutral",
+        "4": "Agree",
+        "5": "Strongly Agree"
+    }
+
     # Function to replace long key names with Q1, Q2, etc.
     def replace_key_suffix(key):
-        # Assuming keys are structured like "prod_1", "prod_2", etc.
-        suffix = key.split('_')[-1]  # Extract the suffix (the last part after underscore)
+        suffix = key.split('_')[-1]  # Extract the suffix (the last part after the underscore)
         try:
             suffix_num = int(suffix)  # Convert to integer
-            if suffix_num == 1:
-                return f"Q{suffix_num}"
-            else:
-                return f"Q{suffix_num}"  # For any other number (e.g., 2-9)
+            return f"Q{suffix_num}"
         except ValueError:
-            return key  # Return original key if conversion fails
+            return key  # Return the original key if conversion fails
 
-    # Format the result as a dictionary grouped by category and key
+    # Format the result as a dictionary grouped by category, key, and value
     output = {}
-    for category, key, total_value, count in results:
+    for category, key, value, count in results:
         if category not in output:
             output[category] = {}
 
         new_key = replace_key_suffix(key)  # Replace long key name with Q format
-        output[category][new_key] = {
-            'total_value': total_value,
-            'count': count
-        }
+
+        if new_key not in output[category]:
+            output[category][new_key] = {}
+
+        # Replace numeric value with label
+        label = value_labels.get(value, str(value))  # Default to the value if label not found
+        output[category][new_key][label] = count
 
     return jsonify(output)
 
