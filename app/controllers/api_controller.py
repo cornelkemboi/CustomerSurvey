@@ -143,25 +143,30 @@ def fetch_category_counts():
             suffix_num = int(suffix)  # Convert to integer
             return f"Q{suffix_num}"
         except ValueError:
-            return key  # Return the original key if conversion fails
+            return
 
     # Format the result as a dictionary grouped by category, key, and value
     output = {}
     for category, key, value, count in results:
-        if category not in output:
-            output[category] = {}
+        # Ensure value is not None and attempt to convert it to an integer
+        if value is not None:
+            try:
+                int_value = int(value)
+                if str(int_value).isdigit():
+                    if category not in output:
+                        output[category] = {}
+                    new_key = replace_key_suffix(key)
+                    if new_key not in output[category]:
+                        output[category][new_key] = {}
 
-        new_key = replace_key_suffix(key)  # Replace long key name with Q format
+                    if category in ["channel", "products and services", "Dissemination channels", "prod"]:
+                        label = value_labels_satisfied.get(value, str(int_value))
+                    else:
+                        label = value_labels_agree.get(value, str(int_value))
+                    output[category][new_key][label] = count
 
-        if new_key not in output[category]:
-            output[category][new_key] = {}
-        if (category == "channel" or category == "products and services" or
-            category == "Dissemination channels" or category == "prod"):
-            label = value_labels_satisfied.get(value, str(value))
-        else:
-            # Replace numeric value with label
-            label = value_labels_agree.get(value, str(value))  # Default to the value if label not found
-        output[category][new_key][label] = count
+            except ValueError:
+                continue
 
     return jsonify(output)
 
