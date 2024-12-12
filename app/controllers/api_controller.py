@@ -121,12 +121,19 @@ def fetch_category_counts():
     results = query.all()
 
     # Map numeric values to labels
-    value_labels = {
+    value_labels_agree = {
         "1": "Strongly Disagree",
         "2": "Disagree",
         "3": "Neutral",
         "4": "Agree",
         "5": "Strongly Agree"
+    }
+    value_labels_satisfied = {
+        "1": "Strongly Dissatisfied",
+        "2": "Dissatisfied",
+        "3": "Neutral",
+        "4": "Satisfied",
+        "5": "Strongly Satisfied"
     }
 
     # Function to replace long key names with Q1, Q2, etc.
@@ -148,9 +155,12 @@ def fetch_category_counts():
 
         if new_key not in output[category]:
             output[category][new_key] = {}
-
-        # Replace numeric value with label
-        label = value_labels.get(value, str(value))  # Default to the value if label not found
+        if (category == "channel" or category == "products and services" or
+            category == "Dissemination channels" or category == "prod"):
+            label = value_labels_satisfied.get(value, str(value))
+        else:
+            # Replace numeric value with label
+            label = value_labels_agree.get(value, str(value))  # Default to the value if label not found
         output[category][new_key][label] = count
 
     return jsonify(output)
